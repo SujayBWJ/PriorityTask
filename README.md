@@ -37,3 +37,4 @@ A full-stack task management web application built with Python (Flask), SQLite, 
 - **Backend**: Python, Flask
 - **Database**: SQLite (Raw SQL)
 - **Frontend**: HTML5, Vanilla CSS3, Vanilla JavaScript
+"# PriorityTask" 
