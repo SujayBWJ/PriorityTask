@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriorityTask - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="login-body">
+    <div class="glass-card login-card">
+        <h1>PriorityTask</h1>
+        <p class="subtitle">Organize with intelligent capacity</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('register' if show_register else 'login') }}" method="POST">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required placeholder="Enter username">
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                {{ 'Create Account' if show_register else 'Login' }}
+            </button>
+        </form>
+
+        <div class="auth-toggle">
+            {% if show_register %}
+                Already have an account? <a href="{{ url_for('login') }}">Login</a>
+            {% else %}
+                Don't have an account? <a href="{{ url_for('register') }}">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

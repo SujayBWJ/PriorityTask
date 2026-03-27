@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PriorityTask</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-body">
+    <header class="glass-header">
+        <div class="header-content">
+            <h1 class="logo">PriorityTask</h1>
+            <div class="user-info">
+                <span>Welcome, <strong>{{ session['username'] }}</strong></span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline btn-sm">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="task-form-section">
+            <div class="glass-card">
+                <h2>Add New Task</h2>
+                <form action="{{ url_for('add_task') }}" method="POST" class="task-form">
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="name">Task Name</label>
+                            <input type="text" id="name" name="name" required placeholder="e.g. Code Review">
+                        </div>
+                        <div class="input-group">
+                            <label for="deadline">Deadline</label>
+                            <input type="date" id="deadline" name="deadline" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="priority">Priority (1-5)</label>
+                            <select id="priority" name="priority" required>
+                                <option value="1">1 - Minimal</option>
+                                <option value="2">2 - Low</option>
+                                <option value="3" selected>3 - Medium</option>
+                                <option value="4">4 - High</option>
+                                <option value="5">5 - Critical</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="hours_per_day">Hours / Day</label>
+                            <input type="number" id="hours_per_day" name="hours_per_day" step="0.5" required min="0.5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="total_capacity">Daily Capacity (Total Hours Available)</label>
+                            <input type="number" id="total_capacity" name="total_capacity" step="1" required value="8">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Task</button>
+                </form>
+                
+                <form action="{{ url_for('recalculate') }}" method="POST" class="mt-2 text-right">
+                    <button type="submit" class="btn btn-secondary btn-sm">Recalculate Backlog</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="task-list-section">
+            <div class="section-badge">Active Tasks (Sorted by Priority)</div>
+            <div class="task-grid">
+                {% if tasks %}
+                    {% for task in tasks %}
+                    <div class="task-card task-priority-{{ task.priority }}">
+                        <div class="task-header">
+                            <h3>{{ task.name }}</h3>
+                            <span class="badge priority-badge">P{{ task.priority }}</span>
+                        </div>
+                        <div class="task-details">
+                            <p><strong>Deadline:</strong> {{ task.deadline }}</p>
+                            <p><strong>Hours:</strong> {{ task.hours_per_day }} hrs/day</p>
+                        </div>
+                        <div class="task-actions mt-2">
+                            <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-success btn-sm">Complete</button>
+                            </form>
+                            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                        {% if task.is_backlog %}
+                        <div class="backlog-label">BACKLOG</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">No active tasks found. Time to relax?</div>
+                {% endif %}
+            </div>
+
+            {% if backlog_tasks %}
+            <div class="section-badge mt-4">Backlog Items</div>
+            <div class="task-grid">
+                {% for task in backlog_tasks %}
+                <div class="task-card task-priority-{{ task.priority }} backlog-item">
+                    <div class="task-header">
+                        <h3>{{ task.name }}</h3>
+                        <span class="badge priority-badge">P{{ task.priority }}</span>
+                    </div>
+                    <div class="task-details">
+                        <p><strong>Missed Deadline:</strong> {{ task.deadline }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if impossible_tasks %}
+            <div class="section-badge mt-4 danger-badge">Impossible Tasks (Over Capacity)</div>
+            <div class="task-grid">
+                {% for task in impossible_tasks %}
+                <div class="task-card task-impossible">
+                    <div class="task-header">
+                        <h3>{{ task.name }}</h3>
+                        <span class="badge priority-badge">P{{ task.priority }}</span>
+                    </div>
+                    <div class="task-details">
+                        <p><strong>Required:</strong> {{ task.hours_per_day }} hrs/day</p>
+                        <p class="text-danger"><em>Task dropped due to capacity.</em></p>
+                    </div>
+                    <div class="task-actions mt-2">
+                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                            <button type="submit" class="btn btn-outline btn-sm">Dismiss</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
