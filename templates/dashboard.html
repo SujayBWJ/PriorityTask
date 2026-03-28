@@ -67,7 +67,7 @@
         <section class="task-list-section">
             <div class="tab-controls mb-4">
                 <button class="tab-btn active" data-tab="active">Active Tasks</button>
-                <button class="tab-btn" data-tab="graveyard">Task Graveyard</button>
+                <button class="tab-btn" data-tab="vault">Task Vault</button>
             </div>
             
             <div id="active-tab" class="tab-content active">
@@ -143,10 +143,10 @@
                 {% endif %}
             </div> <!-- End active-tab -->
 
-            <div id="graveyard-tab" class="tab-content">
-                <div class="section-badge">Task Graveyard (Auto-Dropped)</div>
-                <div id="graveyard-grid" class="task-grid">
-                    <div class="empty-state">Loading graveyard tasks...</div>
+            <div id="vault-tab" class="tab-content">
+                <div class="section-badge">Task Vault (Archive)</div>
+                <div id="vault-grid" class="task-grid">
+                    <div class="empty-state">Loading vault tasks...</div>
                 </div>
             </div>
         </section>

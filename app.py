@@ -130,6 +130,9 @@ def add_task():
     cursor = conn.cursor()
     
     # 1. Calculate current load
+    today = datetime.now().strftime('%Y-%m-%d')
+    is_backlog = 1 if deadline < today else 0
+    
     cursor.execute("SELECT SUM(hours_per_day) FROM tasks WHERE user_id = ? AND status = 'Possible'", (user_id,))
     current_load = cursor.fetchone()[0] or 0.0
     
@@ -154,9 +157,9 @@ def add_task():
                     # Move to graveyard using a transaction
                     try:
                         cursor.execute("BEGIN TRANSACTION")
-                        # 1. Insert into graveyard (let DB handle the ID)
+                        # 1. Insert into vault (let DB handle the ID)
                         cursor.execute("""
-                            INSERT INTO graveyard (user_id, name, deadline, priority, hours_per_day)
+                            INSERT INTO vault (user_id, name, deadline, priority, hours_per_day)
                             VALUES (?, ?, ?, ?, ?)
                         """, (user_id, task['name'], task['deadline'], task['priority'], task['hours_per_day']))
                         
@@ -175,17 +178,21 @@ def add_task():
                 break
                 
         if temp_load > total_capacity + 0.0001:
-            # If still over capacity, the new task itself is impossible if its priority is the lowest or doesn't fit
-            status = 'Impossible'
+            # If still over capacity, the new task itself is impossible unless it's a backlog task
+            # The user wants backlog tasks to stay in the backlog recap.
+            if is_backlog:
+                status = 'Possible'
+            else:
+                status = 'Impossible'
         else:
             status = 'Possible'
     else:
         status = 'Possible'
         
     cursor.execute("""
-        INSERT INTO tasks (user_id, name, deadline, priority, hours_per_day, total_capacity, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (user_id, name, deadline, priority, hours_per_day, total_capacity, status))
+        INSERT INTO tasks (user_id, name, deadline, priority, hours_per_day, total_capacity, status, is_backlog)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, name, deadline, priority, hours_per_day, total_capacity, status, is_backlog))
     
     conn.commit()
     conn.close()
@@ -228,7 +235,7 @@ def recalculate():
                 try:
                     cursor.execute("BEGIN TRANSACTION")
                     cursor.execute("""
-                        INSERT INTO graveyard (user_id, name, deadline, priority, hours_per_day)
+                        INSERT INTO vault (user_id, name, deadline, priority, hours_per_day)
                         VALUES (?, ?, ?, ?, ?)
                     """, (user_id, task['name'], task['deadline'], task['priority'], task['hours_per_day']))
                     cursor.execute("DELETE FROM tasks WHERE id = ?", (task['id'],))
@@ -268,14 +275,14 @@ def delete_task(task_id):
     conn.close()
     return redirect(url_for('dashboard'))
 
-@app.route('/api/graveyard')
-def get_graveyard():
+@app.route('/api/vault')
+def get_vault():
     if 'user_id' not in session:
         return {"error": "Unauthorized"}, 401
         
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM graveyard WHERE user_id = ? ORDER BY dropped_at DESC", (session['user_id'],))
+    cursor.execute("SELECT * FROM vault WHERE user_id = ? ORDER BY dropped_at DESC", (session['user_id'],))
     tasks = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return {"tasks": tasks}

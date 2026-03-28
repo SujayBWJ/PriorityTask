@@ -39,25 +39,25 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             document.getElementById(`${targetTab}-tab`).classList.add('active');
             
-            if (targetTab === 'graveyard') {
-                fetchGraveyard();
+            if (targetTab === 'vault') {
+                fetchVault();
             }
         });
     });
 
-    async function fetchGraveyard() {
-        const grid = document.getElementById('graveyard-grid');
+    async function fetchVault() {
+        const grid = document.getElementById('vault-grid');
         try {
-            const response = await fetch('/api/graveyard');
+            const response = await fetch('/api/vault');
             const data = await response.json();
             
             if (!data.tasks || data.tasks.length === 0) {
-                grid.innerHTML = '<div class="empty-state">Graveyard is empty. No tasks were dropped recently.</div>';
+                grid.innerHTML = '<div class="empty-state">Vault is empty. No tasks were archived recently.</div>';
                 return;
             }
             
             grid.innerHTML = data.tasks.map(task => `
-                <div class="task-card task-priority-${task.priority} graveyard-card">
+                <div class="task-card task-priority-${task.priority} vault-card">
                     <div class="task-header">
                         <h3>${task.name}</h3>
                         <span class="badge priority-badge">P${task.priority}</span>
@@ -66,11 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Original Hours:</strong> ${task.hours_per_day} hrs/day</p>
                         <p><strong>Dropped At:</strong> ${new Date(task.dropped_at).toLocaleDateString()}</p>
                     </div>
-                    <div class="graveyard-mark">RIP</div>
+                    <div class="vault-mark">SECURED</div>
                 </div>
             `).join('');
         } catch (error) {
-            grid.innerHTML = '<div class="empty-state text-danger">Error loading graveyard tasks.</div>';
+            grid.innerHTML = '<div class="empty-state text-danger">Error loading vault tasks.</div>';
             console.error('Fetch error:', error);
         }
     }

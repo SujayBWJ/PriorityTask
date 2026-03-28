@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-CREATE TABLE IF NOT EXISTS graveyard (
+CREATE TABLE IF NOT EXISTS vault (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
