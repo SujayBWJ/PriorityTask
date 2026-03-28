@@ -25,4 +25,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+    // Tab Switching Logic
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetTab = btn.getAttribute('data-tab');
+            
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.getElementById(`${targetTab}-tab`).classList.add('active');
+            
+            if (targetTab === 'graveyard') {
+                fetchGraveyard();
+            }
+        });
+    });
+
+    async function fetchGraveyard() {
+        const grid = document.getElementById('graveyard-grid');
+        try {
+            const response = await fetch('/api/graveyard');
+            const data = await response.json();
+            
+            if (!data.tasks || data.tasks.length === 0) {
+                grid.innerHTML = '<div class="empty-state">Graveyard is empty. No tasks were dropped recently.</div>';
+                return;
+            }
+            
+            grid.innerHTML = data.tasks.map(task => `
+                <div class="task-card task-priority-${task.priority} graveyard-card">
+                    <div class="task-header">
+                        <h3>${task.name}</h3>
+                        <span class="badge priority-badge">P${task.priority}</span>
+                    </div>
+                    <div class="task-details">
+                        <p><strong>Original Hours:</strong> ${task.hours_per_day} hrs/day</p>
+                        <p><strong>Dropped At:</strong> ${new Date(task.dropped_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="graveyard-mark">RIP</div>
+                </div>
+            `).join('');
+        } catch (error) {
+            grid.innerHTML = '<div class="empty-state text-danger">Error loading graveyard tasks.</div>';
+            console.error('Fetch error:', error);
+        }
+    }
 });

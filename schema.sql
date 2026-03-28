@@ -17,3 +17,16 @@ CREATE TABLE IF NOT EXISTS tasks (
     is_backlog BOOLEAN DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
+
+CREATE TABLE IF NOT EXISTS graveyard (
+    id INTEGER PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    deadline DATE NOT NULL,
+    priority INTEGER NOT NULL,
+    hours_per_day REAL NOT NULL,
+    dropped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+);
+
+

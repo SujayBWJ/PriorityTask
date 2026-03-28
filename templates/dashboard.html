@@ -65,76 +65,90 @@
         </section>
 
         <section class="task-list-section">
-            <div class="section-badge">Active Tasks (Sorted by Priority)</div>
-            <div class="task-grid">
-                {% if tasks %}
-                    {% for task in tasks %}
-                    <div class="task-card task-priority-{{ task.priority }}">
+            <div class="tab-controls mb-4">
+                <button class="tab-btn active" data-tab="active">Active Tasks</button>
+                <button class="tab-btn" data-tab="graveyard">Task Graveyard</button>
+            </div>
+            
+            <div id="active-tab" class="tab-content active">
+                <div class="section-badge">Active Tasks (Sorted by Priority)</div>
+                <div class="task-grid">
+                    {% if tasks %}
+                        {% for task in tasks %}
+                        <div class="task-card task-priority-{{ task.priority }}">
+                            <div class="task-header">
+                                <h3>{{ task.name }}</h3>
+                                <span class="badge priority-badge">P{{ task.priority }}</span>
+                            </div>
+                            <div class="task-details">
+                                <p><strong>Deadline:</strong> {{ task.deadline }}</p>
+                                <p><strong>Hours:</strong> {{ task.hours_per_day }} hrs/day</p>
+                            </div>
+                            <div class="task-actions mt-2">
+                                <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-success btn-sm">Complete</button>
+                                </form>
+                                <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            </div>
+                            {% if task.is_backlog %}
+                            <div class="backlog-label">BACKLOG</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">No active tasks found. Time to relax?</div>
+                    {% endif %}
+                </div>
+
+                {% if backlog_tasks %}
+                <div class="section-badge mt-4">Backlog Items</div>
+                <div class="task-grid">
+                    {% for task in backlog_tasks %}
+                    <div class="task-card task-priority-{{ task.priority }} backlog-item">
                         <div class="task-header">
                             <h3>{{ task.name }}</h3>
                             <span class="badge priority-badge">P{{ task.priority }}</span>
                         </div>
                         <div class="task-details">
-                            <p><strong>Deadline:</strong> {{ task.deadline }}</p>
-                            <p><strong>Hours:</strong> {{ task.hours_per_day }} hrs/day</p>
+                            <p><strong>Missed Deadline:</strong> {{ task.deadline }}</p>
                         </div>
-                        <div class="task-actions mt-2">
-                            <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" style="display: inline;">
-                                <button type="submit" class="btn btn-success btn-sm">Complete</button>
-                            </form>
-                            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
-                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                            </form>
-                        </div>
-                        {% if task.is_backlog %}
-                        <div class="backlog-label">BACKLOG</div>
-                        {% endif %}
                     </div>
                     {% endfor %}
-                {% else %}
-                    <div class="empty-state">No active tasks found. Time to relax?</div>
+                </div>
                 {% endif %}
-            </div>
 
-            {% if backlog_tasks %}
-            <div class="section-badge mt-4">Backlog Items</div>
-            <div class="task-grid">
-                {% for task in backlog_tasks %}
-                <div class="task-card task-priority-{{ task.priority }} backlog-item">
-                    <div class="task-header">
-                        <h3>{{ task.name }}</h3>
-                        <span class="badge priority-badge">P{{ task.priority }}</span>
+                {% if impossible_tasks %}
+                <div class="section-badge mt-4 danger-badge">Impossible Tasks (Over Capacity)</div>
+                <div class="task-grid">
+                    {% for task in impossible_tasks %}
+                    <div class="task-card task-impossible">
+                        <div class="task-header">
+                            <h3>{{ task.name }}</h3>
+                            <span class="badge priority-badge">P{{ task.priority }}</span>
+                        </div>
+                        <div class="task-details">
+                            <p><strong>Required:</strong> {{ task.hours_per_day }} hrs/day</p>
+                            <p class="text-danger"><em>Task dropped due to capacity.</em></p>
+                        </div>
+                        <div class="task-actions mt-2">
+                            <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-outline btn-sm">Dismiss</button>
+                            </form>
+                        </div>
                     </div>
-                    <div class="task-details">
-                        <p><strong>Missed Deadline:</strong> {{ task.deadline }}</p>
-                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+                {% endif %}
+            </div> <!-- End active-tab -->
 
-            {% if impossible_tasks %}
-            <div class="section-badge mt-4 danger-badge">Impossible Tasks (Over Capacity)</div>
-            <div class="task-grid">
-                {% for task in impossible_tasks %}
-                <div class="task-card task-impossible">
-                    <div class="task-header">
-                        <h3>{{ task.name }}</h3>
-                        <span class="badge priority-badge">P{{ task.priority }}</span>
-                    </div>
-                    <div class="task-details">
-                        <p><strong>Required:</strong> {{ task.hours_per_day }} hrs/day</p>
-                        <p class="text-danger"><em>Task dropped due to capacity.</em></p>
-                    </div>
-                    <div class="task-actions mt-2">
-                        <form action="{{ url_for('delete_task', task_id=task.id) }}" method="POST" style="display: inline;">
-                            <button type="submit" class="btn btn-outline btn-sm">Dismiss</button>
-                        </form>
-                    </div>
+            <div id="graveyard-tab" class="tab-content">
+                <div class="section-badge">Task Graveyard (Auto-Dropped)</div>
+                <div id="graveyard-grid" class="task-grid">
+                    <div class="empty-state">Loading graveyard tasks...</div>
                 </div>
-                {% endfor %}
             </div>
-            {% endif %}
         </section>
     </main>
 

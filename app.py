@@ -138,7 +138,7 @@ def add_task():
     
     if current_load + hours_per_day > total_capacity:
         # Fetch existing active tasks ordered by priority ASC (lowest first)
-        cursor.execute("SELECT id, hours_per_day, priority FROM tasks WHERE user_id = ? AND status = 'Possible' ORDER BY priority ASC, id ASC", (user_id,))
+        cursor.execute("SELECT id, hours_per_day, priority, name, deadline FROM tasks WHERE user_id = ? AND status = 'Possible' ORDER BY priority ASC, id ASC", (user_id,))
         existing_tasks = cursor.fetchall()
         
         temp_load = current_load + hours_per_day
@@ -149,17 +149,32 @@ def add_task():
         # Requirement: "It must automatically drop the lowest priority task(s) currently in the system to make room for the new task"
         
         for task in existing_tasks:
-            if temp_load > total_capacity:
+            if temp_load > total_capacity + 0.0001:
                 if task['priority'] < priority:
-                    cursor.execute("UPDATE tasks SET status = 'Impossible' WHERE id = ?", (task['id'],))
-                    temp_load -= task['hours_per_day']
-                    dropped_task_ids.append(task['id'])
+                    # Move to graveyard using a transaction
+                    try:
+                        cursor.execute("BEGIN TRANSACTION")
+                        # 1. Insert into graveyard (let DB handle the ID)
+                        cursor.execute("""
+                            INSERT INTO graveyard (user_id, name, deadline, priority, hours_per_day)
+                            VALUES (?, ?, ?, ?, ?)
+                        """, (user_id, task['name'], task['deadline'], task['priority'], task['hours_per_day']))
+                        
+                        # 2. Delete from tasks
+                        cursor.execute("DELETE FROM tasks WHERE id = ?", (task['id'],))
+                        conn.commit()
+                        
+                        temp_load -= task['hours_per_day']
+                        dropped_task_ids.append(task['id'])
+                    except Exception as e:
+                        conn.rollback()
+                        print(f"Transaction failed: {e}")
                 else:
                     break # All remaining tasks are higher or equal priority.
             else:
                 break
                 
-        if temp_load > total_capacity:
+        if temp_load > total_capacity + 0.0001:
             # If still over capacity, the new task itself is impossible if its priority is the lowest or doesn't fit
             status = 'Impossible'
         else:
@@ -202,19 +217,28 @@ def recalculate():
     total_required = row[0] or 0.0
     total_capacity = row[1] or 0.0
     
-    if total_required > total_capacity:
+    if total_required > total_capacity + 0.0001:
         # Run Auto-Drop Logic again
-        cursor.execute("SELECT id, hours_per_day, priority FROM tasks WHERE user_id = ? AND status = 'Possible' ORDER BY priority ASC, id ASC", (user_id,))
+        cursor.execute("SELECT id, hours_per_day, priority, name, deadline FROM tasks WHERE user_id = ? AND status = 'Possible' ORDER BY priority ASC, id ASC", (user_id,))
         existing_tasks = cursor.fetchall()
         
         temp_load = total_required
         for task in existing_tasks:
-            if temp_load > total_capacity:
-                cursor.execute("UPDATE tasks SET status = 'Impossible' WHERE id = ?", (task['id'],))
-                temp_load -= task['hours_per_day']
+            if temp_load > total_capacity + 0.0001:
+                try:
+                    cursor.execute("BEGIN TRANSACTION")
+                    cursor.execute("""
+                        INSERT INTO graveyard (user_id, name, deadline, priority, hours_per_day)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (user_id, task['name'], task['deadline'], task['priority'], task['hours_per_day']))
+                    cursor.execute("DELETE FROM tasks WHERE id = ?", (task['id'],))
+                    conn.commit()
+                    temp_load -= task['hours_per_day']
+                except Exception as e:
+                    conn.rollback()
+                    print(f"Transaction failed: {e}")
             else:
                 break
-        conn.commit()
         
     conn.close()
     return redirect(url_for('dashboard'))
@@ -243,6 +267,18 @@ def delete_task(task_id):
     conn.commit()
     conn.close()
     return redirect(url_for('dashboard'))
+
+@app.route('/api/graveyard')
+def get_graveyard():
+    if 'user_id' not in session:
+        return {"error": "Unauthorized"}, 401
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM graveyard WHERE user_id = ? ORDER BY dropped_at DESC", (session['user_id'],))
+    tasks = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return {"tasks": tasks}
 
 if __name__ == '__main__':
     with app.app_context():
